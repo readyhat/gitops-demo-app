@@ -19,7 +19,8 @@ spec:
         name: npm
       params:
         - name: pathContext
-          value: build/src
+          # value: build/src
+          value: app/src
         - name: action
           value: run lint
       resources:
@@ -31,7 +32,8 @@ spec:
         name: npm
       params:
         - name: pathContext
-          value: build/src
+          # value: build/src
+          value: app/src
         - name: action
           value: run test
       resources:
