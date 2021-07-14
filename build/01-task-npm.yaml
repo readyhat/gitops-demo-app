@@ -1,0 +1,29 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: npm
+spec:
+  params:
+    - name: pathContext
+      description: Path to application inside git
+      default: "."
+      type: string
+    - name: action
+      description: Operation to be performed by npm
+      default: "start"
+      type: string
+  resources:
+    inputs:
+      - name: repo
+        type: git
+  steps:
+    - name: npm-install
+      image: node:12
+      command:
+        - /bin/bash
+      args: ['-c', 'cd repo/$(params.pathContext) && npm install']
+    - name: npm-lint
+      image: node:12
+      command:
+        - /bin/bash
+      args: ['-c', 'cd repo/$(params.pathContext) && npm $(params.action)']

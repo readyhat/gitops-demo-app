@@ -1,0 +1,55 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: dashboard-deploy
+spec:
+  params:
+    - name: user
+      type: string
+      description: User name for registry
+    - name: image-name
+      type: string
+      description: Name of the image to produce (will be user/image-name)
+  resources:
+    - name: git-repo
+      type: git
+  tasks:
+    - name: lint
+      taskRef:
+        name: npm
+      params:
+        - name: pathContext
+          value: build/src
+        - name: action
+          value: run lint
+      resources:
+        inputs:
+          - name: repo
+            resource: git-repo
+    - name: test
+      taskRef:
+        name: npm
+      params:
+        - name: pathContext
+          value: build/src
+        - name: action
+          value: run test
+      resources:
+        inputs:
+          - name: repo
+            resource: git-repo
+    - name: build-and-deploy
+      params:
+        - name: user
+          value: $(params.user)
+        - name: image-name
+          value: $(params.image-name)
+      taskRef:
+        name: s2i-nodejs
+      resources:
+        inputs:
+          - name: repo
+            resource: git-repo
+      runAfter:
+        - lint
+        - test

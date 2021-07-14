@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: s2i-nodejs
+spec:
+  params: 
+    - name: user
+      type: string
+    - name: image-name
+      type: string
+    - name: registry
+      type: string
+      default: "quay.io"
+  resources:
+    inputs:
+      - name: repo
+        type: git
+  steps:
+    - name: generate
+      image: quay.io/openshift-pipeline/s2i
+      workingDir: /workspace/repo/build/src
+      command: ["s2i", "build", ".", "registry.access.redhat.com/ubi8/nodejs-12", "--as-dockerfile", "/gensource/Dockerfile.gen"]
+      volumeMounts:
+        - name: gensource
+          mountPath: /gensource
+    - name: build
+      image: quay.io/buildah/stable
+      workingDir: /gensource
+      command: ["buildah", "bud", "--tls-verify=false", "--layers", "-f", "/gensource/Dockerfile.gen", "-t", "$(params.registry)/$(params.user)/$(params.image-name)", "."]
+      volumeMounts:
+        - name: varlibcontainers
+          mountPath: /var/lib/containers
+        - name: gensource
+          mountPath: /gensource
+      securityContext:
+        privileged: true
+    - name: push
+      image: quay.io/buildah/stable
+      command: ['buildah', 'push', '--tls-verify=false', '$(params.registry)/$(params.user)/$(params.image-name)', 'docker://$(params.registry)/$(params.user)/$(params.image-name)']
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
+  volumes:
+    - name: varlibcontainers
+      emptyDir: {}
+    - name: gensource
+      emptyDir: {}
